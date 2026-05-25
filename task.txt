@@ -1,0 +1,129 @@
+Составил тяжелое C++ задание по коду для семинаров. Там не мало, но есть частичные баллы. 
+
+Задание на код:
+SkipList<T> — индексируемый упорядоченный контейнер
+
+Требуется реализовать шаблонный упорядоченный контейнер SkipList<T, Compare> на основе структуры данных skip list (список с пропусками). Контейнер должен быть оформлен в стиле STL: с итераторами, корректными типами-членами, поддержкой стандартных алгоритмов и правильной семантикой владения ресурсами.
+
+Skip list — вероятностная структура данных, поддерживающая поиск, вставку и удаление за ожидаемое O(log n). В отличие от std::set, skip list дополнительно позволяет эффективно отвечать на порядковые запросы: найти k-й элемент, посчитать число элементов меньше заданного, — если при каждом узле и уровне хранить ширину (span) перехода.
+
+Сдать нужно три файла:
+skiplist.hpp       — полная реализация шаблонного контейнера
+iorderedset.hpp    — абстрактный интерфейс IOrderedSet<T>
+skiplist_except.hpp — собственные исключения
+Абстрактный базовый класс IOrderedSet<T>
+Реализовать абстрактный интерфейс:
+
+template<typename T>
+class IOrderedSet {
+public:
+    virtual ~IOrderedSet() = default;
+
+    virtual void insert(const T& value) = 0;
+    virtual bool rase(const T& value) = 0;
+    virtual bool contains(const T& value) const = 0;
+    virtual std::size_t size() const = 0;
+    virtual bool empty() const = 0;
+    virtual void clear() = 0;
+};
+
+Класс SkipList<T, Compare>
+SkipList<T, Compare> должен публично наследоваться от IOrderedSet<T>.
+Обязательный публичный API:
+
+Модификаторы:
+- void insert(const T& value)
+- void insert(T&& value)
+- bool erase(const T& value) - удаляет одно вхождение, возвращает false если не найдено
+- iterator erase(iterator pos)- удаляет по итератору, возвращает следующий
+- void clear()
+
+Поиск и доступ:
+- bool contains(const T& value) const
+- iterator find(const T& value)
+- const_iterator find(const T& value) const
+- iterator lower_bound(const T& value)
+- const_iterator lower_bound(const T& value) const
+- iterator upper_bound(const T& value)
+- const_iterator upper_bound(const T& value) const
+
+Порядковые запросы (основное усложнение):
+- iterator kth(std::size_t k) - 0-индексированный k-й элемент за O(log n)
+- const_iterator kth(std::size_t k) const
+- std::size_t count_less(const T& value) const - число элементов < value за O(log n)
+- std::size_t count_range(const T& lo, const T& hi) const - число в [lo, hi)
+
+Размер:
+- std::size_t size() const
+- bool empty() const
+
+Итераторы:
+- iterator begin(), iterator end()
+- const_iterator begin() const, const_iterator end() const
+- const_iterator cbegin() const, const_iterator cend() const
+
+Итератор должен удовлетворять концепции ForwardIterator:
+
+// Обязательные типы-члены:
+using iterator_category = std::forward_iterator_tag;
+using value_type = T;
+using difference_type = std::ptrdiff_t;
+using pointer = const T*;
+using reference = const T&;
+
+// Обязательные операции:
+reference operator*()  const;
+pointer   operator->() const;
+iterator& operator++();        // prefix
+iterator  operator++(int);     // postfix
+bool operator==(const iterator&) const;
+bool operator!=(const iterator&) const;
+Итератор должен работать с std::find_if, std::for_each, std::copy, std::distance,
+std::count_if и range-for.
+
+Конструкторы и семантика владения
+SkipList();  // по умолчанию
+explicit SkipList(Compare comp);  // с компаратором
+SkipList(std::initializer_list<T> ilist); // из списка инициализации
+
+SkipList(const SkipList&)            = delete; // копирование ЗАПРЕЩЕНО
+SkipList& operator=(const SkipList&) = delete;
+
+SkipList(SkipList&&) noexcept; // перемещение
+SkipList& operator=(SkipList&&) noexcept; // перемещающее присваивание
+
+~SkipList(); // корректно освобождает всю память
+Обоснование запрета копирования нужно описать в комментарии в коде.
+
+Собственные исключения
+Реализовать в skiplist_except.hpp:
+
+class SkipListException   : public std::exception { ... };
+class ElementNotFoundException : public SkipListException { ... };
+class IndexOutOfRangeException : public SkipListException { ... };
+- what() const noexcept override должен возвращать осмысленное сообщение.
+- kth(k) бросает IndexOutOfRangeException при k >= size().
+- erase(iterator) с невалидным итератором — поведение не определено (как в STL).
+
+Ограничения
+- Запрещено хранить элементы во внутреннем std::set, std::vector или других
+  готовых контейнерах, уже решающих задачу.
+- Запрещено использование сторонних библиотек, решающих задачу.
+- MAX_LEVEL выбрать не менее 16, вероятность продвижения уровня p = 0.5.
+- Генератор случайных чисел инициализировать один раз в конструкторе или статически.
+
+
+
+Асимптотика:
+Операция - Ожидаемая сложность
+insert - O(log n)
+erase - O(log n)
+find / contains - O(log n)
+lower_bound / upper_bound - O(log n)
+kth - O(log n)
+count_less - O(log n)
+count_range - O(log n)
+begin / end - O(1)
+size / empty - O(1)
+clear - O(n)
+Итерация по всей коллекции - O(n)
